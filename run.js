@@ -37,6 +37,10 @@ const replaceInFile = (
     let regexStruct = new RegExp("<struct>", "g");
 
     let regexInputArg = new RegExp("<, ExampleInput memory input>", "g");
+    let regexInputArgMaybe = new RegExp(
+      "<, ExampleInput memory inputMaybe>",
+      "g"
+    );
     let regexInputParam = new RegExp("<, input>", "g");
 
     let initData = "abi.encodeCall(<Example>.initialize, (<initArg>))";
@@ -72,8 +76,14 @@ const replaceInFile = (
       structDef ? ", " + replacementExample + "Input memory input" : ""
     );
     updatedData = updatedData.replace(
+      regexInputArgMaybe,
+      replacementArgsConstruct
+        ? ", " + replacementExample + "Input memory input"
+        : ""
+    );
+    updatedData = updatedData.replace(
       regexInputParam,
-      structDef ? ", " + "input" : ""
+      replacementArgsConstruct ? ", " + "input" : ""
     );
 
     fs.writeFile(newFilePath, updatedData, "utf8", (err) => {
