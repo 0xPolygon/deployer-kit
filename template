@@ -13,17 +13,17 @@ abstract contract <Example>Deployer is Script {
     ProxyAdmin internal <example>ProxyAdmin;
     address internal <example>Logic;
 
-    function deploy<Example>(address proxyAdminOwner<, uint256 constructArg><, uint256 initArg>) internal {
+    function deploy<Example>(address proxyAdminOwner<, ExampleInput memory input>) internal {
         bytes memory initData = <initData>;
 
-        _deploy<Example>(proxyAdminOwner<, constructArg>, initData);
+        _deploy<Example>(proxyAdminOwner<, input>, initData);
     }
 
-    function deploy<Example>_NoInit(address proxyAdminOwner<, uint256 constructArg>) internal {
-        _deploy<Example>(proxyAdminOwner<, constructArg>, "");
+    function deploy<Example>_NoInit(address proxyAdminOwner<, ExampleInput memory input>) internal {
+        _deploy<Example>(proxyAdminOwner<, input>, "");
     }
 
-    function _deploy<Example>(address proxyAdminOwner<, uint256 constructArg>, bytes memory initData) private {
+    function _deploy<Example>(address proxyAdminOwner<, ExampleInput memory input>, bytes memory initData) private {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         <example>Logic = address(new <Example>(<constructArg>));

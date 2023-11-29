@@ -14,66 +14,61 @@ const replaceInFile = (
       return console.error(err);
     }
 
+    const structDef = generateStructDefinition(
+      replacementExample,
+      replacementArgsConstruct,
+      replacementArgs
+    );
+
+    let regexPathToExample = new RegExp("<src/Example.sol>", "g");
+
     let regexExample = new RegExp("<Example>", "g");
     let regexExampleVar = new RegExp("<example>", "g");
-    let regexArgsConstruct = new RegExp("<, uint256 constructArg>", "g");
-    let regexArgsConstructNames = new RegExp("<, constructArg>", "g");
-    let regexArgsConstructNamesAlone = new RegExp("<constructArg>", "g");
-    let regexArgs = new RegExp("<, uint256 initArg>", "g");
-    let regexArgsNamesAlone = new RegExp("<initArg>", "g");
-    let regexPathToExample = new RegExp("<src/Example.sol>", "g");
+
+    let regexArgsConstructNames = new RegExp("<constructArg>", "g");
+    let regexArgsNames = new RegExp("<initArg>", "g");
+
     let regexInitData = new RegExp("<initData>", "g");
     let regexStruct = new RegExp("<struct>", "g");
+
+    let regexInputArg = new RegExp("<, ExampleInput memory input>", "g");
+    let regexInputParam = new RegExp("<, input>", "g");
 
     let initData = "abi.encodeCall(<Example>.initialize, (<initArg>))";
 
     let updatedData = initData.replace(regexExample, replacementExample);
     updatedData = updatedData.replace(
-      regexArgsNamesAlone,
+      regexArgsNames,
       processString(replacementArgs)
     );
-    initData = replacementArgs
-      ? updatedData
-      : `""; revert("${replacementExample} is not initializable!")`;
-    updatedData = data.replace(regexInitData, initData);
+    initData = replacementArgs ? updatedData : `""`;
+
+    updatedData = data.replace(regexPathToExample, replacementPathToExample);
     updatedData = updatedData.replace(regexExample, replacementExample);
     updatedData = updatedData.replace(
       regexExampleVar,
       replacementExample.charAt(0).toLowerCase() + replacementExample.slice(1)
     );
-    updatedData = updatedData.replace(
-      regexArgsConstruct,
-      replacementArgsConstruct ? ", " + replacementArgsConstruct : ""
-    );
+
     updatedData = updatedData.replace(
       regexArgsConstructNames,
-      replacementArgsConstruct
-        ? ", " + processString(replacementArgsConstruct)
-        : ""
+      replacementArgsConstruct ? processString(replacementArgsConstruct) : ""
     );
     updatedData = updatedData.replace(
-      regexArgsConstructNamesAlone,
-      processString(replacementArgsConstruct)
-    );
-    updatedData = updatedData.replace(
-      regexArgs,
-      replacementArgs ? ", " + replacementArgs : ""
-    );
-    updatedData = updatedData.replace(
-      regexArgsNamesAlone,
+      regexArgsNames,
       processString(replacementArgs)
     );
+
+    updatedData = updatedData.replace(regexInitData, initData);
+    updatedData = updatedData.replace(regexStruct, structDef);
+
     updatedData = updatedData.replace(
-      regexPathToExample,
-      replacementPathToExample
+      regexInputArg,
+      structDef ? ", " + replacementExample + "Input memory input" : ""
     );
     updatedData = updatedData.replace(
-      regexStruct,
-      generateStructDefinition(
-        replacementExample,
-        replacementArgsConstruct,
-        replacementArgs
-      )
+      regexInputParam,
+      structDef ? ", " + "input" : ""
     );
 
     fs.writeFile(newFilePath, updatedData, "utf8", (err) => {
@@ -89,10 +84,12 @@ const replaceInFile = (
 function processString(inputString) {
   if (inputString.includes(",")) {
     const words = inputString.split(",");
-    const lastWords = words.map((word) => word.trim().split(" ").pop());
+    const lastWords = words.map(
+      (word) => "input." + word.trim().split(" ").pop()
+    );
     return lastWords.join(", ");
   } else {
-    return inputString.trim().split(" ").pop();
+    return "input." + inputString.trim().split(" ").pop();
   }
 }
 
