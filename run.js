@@ -14,6 +14,11 @@ const replaceInFile = (
       return console.error(err);
     }
 
+    [replacementArgsConstruct, replacementArgs] = changeInputStrings(
+      replacementArgsConstruct,
+      replacementArgs
+    );
+
     const structDef = generateStructDefinition(
       replacementExample,
       replacementArgsConstruct,
@@ -184,4 +189,38 @@ function generateStructDefinition(name, constructArg, initArg) {
     // Return an empty string if no arguments are provided
     return "";
   }
+}
+
+function changeInputStrings(arg1, arg2) {
+  // Helper function to extract names from a comma-separated string
+  function extractNames(input) {
+    const parts = input.split(", ");
+    return parts.map((part) => {
+      const match = part.match(/\w+$/);
+      return match ? match[0] : "";
+    });
+  }
+
+  // Extract names from the input arguments
+  const names1 = extractNames(arg1);
+  const names2 = extractNames(arg2);
+
+  // Find duplicate names
+  const duplicates = names1.filter((name) => names2.includes(name));
+
+  // Replace duplicate names in the original strings
+  if (duplicates.length > 0) {
+    duplicates.forEach((name) => {
+      arg1 = arg1.replace(
+        new RegExp(`\\b${name}\\b`, "g"),
+        `${name}_constructor`
+      );
+      arg2 = arg2.replace(
+        new RegExp(`\\b${name}\\b`, "g"),
+        `${name}_initialize`
+      );
+    });
+  }
+
+  return [arg1, arg2];
 }
