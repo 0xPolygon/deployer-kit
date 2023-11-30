@@ -2,7 +2,7 @@
 > Interim repository.
 
 ```
-forge install https://github.com/0xPolygon/contract-deployer-template
+forge install 0xPolygon/contract-deployer-template
 ```
 
 ```

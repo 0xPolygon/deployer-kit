@@ -7,7 +7,7 @@ const replaceInFile = (
   replacementExample,
   replacementArgsConstruct,
   replacementArgs,
-  replacementPathToExample
+  replacementPathToExample,
 ) => {
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
@@ -16,13 +16,13 @@ const replaceInFile = (
 
     [replacementArgsConstruct, replacementArgs] = changeInputStrings(
       replacementArgsConstruct,
-      replacementArgs
+      replacementArgs,
     );
 
     const structDef = generateStructDefinition(
       replacementExample,
       replacementArgsConstruct,
-      replacementArgs
+      replacementArgs,
     );
 
     let regexPathToExample = new RegExp("<src/Example.sol>", "g");
@@ -39,7 +39,7 @@ const replaceInFile = (
     let regexInputArg = new RegExp("<, ExampleInput memory input>", "g");
     let regexInputArgMaybe = new RegExp(
       "<, ExampleInput memory inputMaybe>",
-      "g"
+      "g",
     );
     let regexInputParam = new RegExp("<, input>", "g");
 
@@ -48,7 +48,7 @@ const replaceInFile = (
     let updatedData = initData.replace(regexExample, replacementExample);
     updatedData = updatedData.replace(
       regexArgsNames,
-      processString(replacementArgs)
+      processString(replacementArgs),
     );
     initData = replacementArgs ? updatedData : `""`;
 
@@ -56,16 +56,16 @@ const replaceInFile = (
     updatedData = updatedData.replace(regexExample, replacementExample);
     updatedData = updatedData.replace(
       regexExampleVar,
-      replacementExample.charAt(0).toLowerCase() + replacementExample.slice(1)
+      replacementExample.charAt(0).toLowerCase() + replacementExample.slice(1),
     );
 
     updatedData = updatedData.replace(
       regexArgsConstructNames,
-      replacementArgsConstruct ? processString(replacementArgsConstruct) : ""
+      replacementArgsConstruct ? processString(replacementArgsConstruct) : "",
     );
     updatedData = updatedData.replace(
       regexArgsNames,
-      processString(replacementArgs)
+      processString(replacementArgs),
     );
 
     updatedData = updatedData.replace(regexInitData, initData);
@@ -73,17 +73,17 @@ const replaceInFile = (
 
     updatedData = updatedData.replace(
       regexInputArg,
-      structDef ? ", " + replacementExample + "Input memory input" : ""
+      structDef ? ", " + replacementExample + "Input memory input" : "",
     );
     updatedData = updatedData.replace(
       regexInputArgMaybe,
       replacementArgsConstruct
         ? ", " + replacementExample + "Input memory input"
-        : ""
+        : "",
     );
     updatedData = updatedData.replace(
       regexInputParam,
-      replacementArgsConstruct ? ", " + "input" : ""
+      replacementArgsConstruct ? ", " + "input" : "",
     );
 
     fs.writeFile(newFilePath, updatedData, "utf8", (err) => {
@@ -100,7 +100,7 @@ function processString(inputString) {
   if (inputString.includes(",")) {
     const words = inputString.split(",");
     const lastWords = words.map(
-      (word) => "input." + word.trim().split(" ").pop()
+      (word) => "input." + word.trim().split(" ").pop(),
     );
     return lastWords.join(", ");
   } else {
@@ -118,7 +118,7 @@ let replacementExample;
 
 if (!replacementPathToExample || !newFilePath) {
   console.error(
-    "Usage: node lib/contract-deployer-template/run.js <contractFile> <constructParams> <initParams> <outputDir>"
+    "Usage: node lib/contract-deployer-template/run.js <contractFile> <constructParams> <initParams> <outputDir>",
   );
   process.exit(1);
 }
@@ -140,7 +140,7 @@ if (fileNameParts.length > 1) {
 
 if (!replacementPathToExample) {
   console.error(
-    "Usage: node script/util/generateDeployer.js <contractFile> <constructParams> <initParams> <outputDir>"
+    "Usage: node script/util/generateDeployer.js <contractFile> <constructParams> <initParams> <outputDir>",
   );
   process.exit(1);
 }
@@ -149,7 +149,7 @@ let filePathPrefix = newFilePath;
 
 const formattedPath = path.join(
   filePathPrefix,
-  "Deploy" + replacementExample + ".s.sol"
+  "Deploy" + replacementExample + ".s.sol",
 );
 
 replaceInFile(
@@ -158,7 +158,7 @@ replaceInFile(
   replacementExample,
   replacementArgsConstruct,
   replacementArgs,
-  replacementPathToExample
+  replacementPathToExample,
 );
 
 // TODO: Format the new file
@@ -223,11 +223,11 @@ function changeInputStrings(arg1, arg2) {
     duplicates.forEach((name) => {
       arg1 = arg1.replace(
         new RegExp(`\\b${name}\\b`, "g"),
-        `${name}_constructor`
+        `${name}_constructor`,
       );
       arg2 = arg2.replace(
         new RegExp(`\\b${name}\\b`, "g"),
-        `${name}_initialize`
+        `${name}_initialize`,
       );
     });
   }
