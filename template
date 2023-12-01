@@ -7,23 +7,14 @@ import "<src/Example.sol>";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy, ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-<struct>
 abstract contract <Example>Deployer is Script {
     <Example> internal <example>;
     ProxyAdmin internal <example>ProxyAdmin;
     address internal <example>Logic;
 
-    function deploy<Example>(address proxyAdminOwner<, ExampleInput memory input>) internal {
+    function deploy<Example>(address proxyAdminOwner<, uint256 constructArg><, uint256 initArg>) internal returns (address implementation, address proxyAdmin, address proxy) {
         bytes memory initData = <initData>;
 
-        _deploy<Example>(proxyAdminOwner<, input>, initData);
-    }
-
-    function deploy<Example>_NoInit(address proxyAdminOwner<, ExampleInput memory inputMaybe>) internal {
-        _deploy<Example>(proxyAdminOwner<, input>, "");
-    }
-
-    function _deploy<Example>(address proxyAdminOwner<, ExampleInput memory inputMaybe>, bytes memory initData) private {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         <example>Logic = address(new <Example>(<constructArg>));
@@ -33,5 +24,13 @@ abstract contract <Example>Deployer is Script {
 
         <example>ProxyAdmin =
             ProxyAdmin(address(uint160(uint256(vm.load(address(<example>), hex"b53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103")))));
+
+        return (<example>Logic, address(<example>ProxyAdmin), address(<example>));
+    }
+
+    function deploy<Example>Implementation(<, uint256 constructArg>) internal returns (address implementation) {
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        implementation =  address(new <Example>(<constructArg>));
+        vm.stopBroadcast();
     }
 }

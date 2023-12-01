@@ -1,119 +1,12 @@
 const fs = require("fs");
 const path = require("path");
-
-const replaceInFile = (
-  filePath,
-  newFilePath,
-  replacementExample,
-  replacementArgsConstruct,
-  replacementArgs,
-  replacementPathToExample,
-) => {
-  fs.readFile(filePath, "utf8", (err, data) => {
-    if (err) {
-      return console.error(err);
-    }
-
-    [replacementArgsConstruct, replacementArgs] = changeInputStrings(
-      replacementArgsConstruct,
-      replacementArgs,
-    );
-
-    const structDef = generateStructDefinition(
-      replacementExample,
-      replacementArgsConstruct,
-      replacementArgs,
-    );
-
-    let regexPathToExample = new RegExp("<src/Example.sol>", "g");
-
-    let regexExample = new RegExp("<Example>", "g");
-    let regexExampleVar = new RegExp("<example>", "g");
-
-    let regexArgsConstructNames = new RegExp("<constructArg>", "g");
-    let regexArgsNames = new RegExp("<initArg>", "g");
-
-    let regexInitData = new RegExp("<initData>", "g");
-    let regexStruct = new RegExp("<struct>", "g");
-
-    let regexInputArg = new RegExp("<, ExampleInput memory input>", "g");
-    let regexInputArgMaybe = new RegExp(
-      "<, ExampleInput memory inputMaybe>",
-      "g",
-    );
-    let regexInputParam = new RegExp("<, input>", "g");
-
-    let initData = "abi.encodeCall(<Example>.initialize, (<initArg>))";
-
-    let updatedData = initData.replace(regexExample, replacementExample);
-    updatedData = updatedData.replace(
-      regexArgsNames,
-      processString(replacementArgs),
-    );
-    initData = replacementArgs ? updatedData : `""`;
-
-    updatedData = data.replace(regexPathToExample, replacementPathToExample);
-    updatedData = updatedData.replace(regexExample, replacementExample);
-    updatedData = updatedData.replace(
-      regexExampleVar,
-      replacementExample.charAt(0).toLowerCase() + replacementExample.slice(1),
-    );
-
-    updatedData = updatedData.replace(
-      regexArgsConstructNames,
-      replacementArgsConstruct ? processString(replacementArgsConstruct) : "",
-    );
-    updatedData = updatedData.replace(
-      regexArgsNames,
-      processString(replacementArgs),
-    );
-
-    updatedData = updatedData.replace(regexInitData, initData);
-    updatedData = updatedData.replace(regexStruct, structDef);
-
-    updatedData = updatedData.replace(
-      regexInputArg,
-      structDef ? ", " + replacementExample + "Input memory input" : "",
-    );
-    updatedData = updatedData.replace(
-      regexInputArgMaybe,
-      replacementArgsConstruct
-        ? ", " + replacementExample + "Input memory input"
-        : "",
-    );
-    updatedData = updatedData.replace(
-      regexInputParam,
-      replacementArgsConstruct ? ", " + "input" : "",
-    );
-
-    fs.writeFile(newFilePath, updatedData, "utf8", (err) => {
-      if (err) {
-        console.error(err);
-      } else {
-        console.log("Deployer generated.");
-      }
-    });
-  });
-};
-
-function processString(inputString) {
-  if (inputString.includes(",")) {
-    const words = inputString.split(",");
-    const lastWords = words.map(
-      (word) => "input." + word.trim().split(" ").pop(),
-    );
-    return lastWords.join(", ");
-  } else {
-    return "input." + inputString.trim().split(" ").pop();
-  }
-}
+const { execSync } = require("child_process");
 
 // Replace occurrences in the specified file with the provided arguments
 const filePath = "lib/contract-deployer-template/template";
 const replacementPathToExample = process.argv[2];
-const replacementArgsConstruct = process.argv[3];
-const replacementArgs = process.argv[4];
-const newFilePath = process.argv[5];
+// todo add default output dir
+const newFilePath = process.argv[3];
 let replacementExample;
 
 if (!replacementPathToExample || !newFilePath) {
@@ -147,90 +40,166 @@ if (!replacementPathToExample) {
 
 let filePathPrefix = newFilePath;
 
+// create the directory if it doesn't exist
+if (!fs.existsSync(filePathPrefix)) {
+  fs.mkdirSync(filePathPrefix, { recursive: true });
+}
+
 const formattedPath = path.join(
   filePathPrefix,
   "Deploy" + replacementExample + ".s.sol",
 );
 
+const replaceInFile = (
+  filePath,
+  newFilePath,
+  replacementExample,
+  replacementPathToExample,
+  contractName,
+) => {
+  // compile contracts if they don't exist
+  if (!fs.existsSync("out")) prepareArtifacts();
+
+  // get abi
+  contractName =
+    contractName != undefined
+      ? contractName + ".json"
+      : replacementExample + ".json";
+  const contractFileName = path.join(
+    "out",
+    replacementExample + ".sol",
+    contractName,
+  );
+  let fileContents;
+  try {
+    fileContents = fs.readFileSync(contractFileName, "utf8");
+  } catch {
+    console.error(
+      "Contract not found. Did you provide the correct contract name and run `forge build`?",
+    );
+    process.exit(1);
+  }
+  abi = JSON.parse(fileContents).abi;
+  // get constructor and initializer args, format them, if none present, set to empty array, if initArgs is undefined, it means no initializer function is present
+  const constructorArgs =
+    abi
+      .find((element) => element.type == "constructor")
+      ?.inputs.map((element) =>
+        formatInput(element.internalType, element.name),
+      ) ?? [];
+  const initArgs = abi
+    .find(
+      (element) => element.type == "function" && element.name == "initialize",
+    )
+    ?.inputs.map((element) => formatInput(element.internalType, element.name));
+
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      return console.error(err);
+    }
+
+    let regexExample = new RegExp("<Example>", "g");
+    let regexExampleVar = new RegExp("<example>", "g");
+    let regexArgsConstruct = new RegExp("<, uint256 constructArg>", "g");
+    let regexArgsConstructNames = new RegExp("<constructArg>", "g");
+    let regexArgs = new RegExp("<, uint256 initArg>", "g");
+    let regexArgsNames = new RegExp("<initArg>", "g");
+    let regexPathToExample = new RegExp("<src/Example.sol>", "g");
+    let regexInitData = new RegExp("<initData>", "g");
+
+    let initData = "abi.encodeCall(<Example>.initialize, (<initArg>))";
+    let updatedData = initData.replace(regexExample, replacementExample);
+    if (initArgs === undefined) {
+      updatedData = `"";\n        revert("${replacementExample} is not initializable")`;
+    } else {
+      updatedData = updatedData.replace(
+        regexArgsNames,
+        initArgs.length === 0 ? "" : initArgs.map((e) => e.name).join(", "),
+      );
+    }
+
+    // replace all non character or number characters with an empty string
+    replacementExample = replacementExample.replace(/[^a-zA-Z0-9]/g, "");
+
+    updatedData = data.replace(regexInitData, updatedData);
+    updatedData = updatedData.replace(regexExample, replacementExample);
+    updatedData = updatedData.replace(
+      regexExampleVar,
+      replacementExample.charAt(0).toLowerCase() + replacementExample.slice(1),
+    );
+    updatedData = updatedData.replace(
+      regexArgsConstruct,
+      constructorArgs.length === 0
+        ? ""
+        : ", " + constructorArgs.map((e) => e.definition).join(", "),
+    );
+    updatedData = updatedData.replace(
+      regexArgsConstructNames,
+      constructorArgs.map((e) => e.name).join(", "),
+    );
+    updatedData = updatedData.replace(
+      regexArgs,
+      initArgs === undefined || initArgs.length === 0
+        ? ""
+        : ", " + initArgs.map((e) => e.definition).join(", "),
+    );
+    updatedData = updatedData.replace(
+      regexPathToExample,
+      replacementPathToExample,
+    );
+
+    fs.writeFile(newFilePath, updatedData, "utf8", (err) => {
+      if (err) {
+        console.error(err);
+      } else {
+        format();
+        console.log("Deployer generated.");
+      }
+    });
+  });
+};
+
+function formatInput(type, name) {
+  // order of operations is important, as some types are caught by multiple cases
+  // if the first 6 characters of the type are "string", add memory to the type
+  if (type.slice(0, 6) == "string") type += " memory";
+  // if the first 5 characters of the type are "bytes", add memory to the type
+  else if (type.slice(0, 5) == "bytes") type += " memory";
+  // if the first 8 characters of the type are "contract", remove the "contract " from the type
+  else if (type.slice(0, 8) == "contract") type = type.slice(9);
+  // if the first 6 characters of the type are "struct" and it ends in [] or [(number)], remove the "struct " from the type and add memory
+  else if (/^struct.*\[\d*\]$/.test(type)) type = type.slice(7) + " memory";
+  // if the first 4 characters of the type are "enum" and it ends in [] or [(number)], remove the "enum " from the type and add memory
+  else if (/^enum.*\[\d*\]$/.test(type)) type = type.slice(5) + " memory";
+  // if the type is an array, add memory to the type
+  else if (/\[\d*\]$/.test(type)) type += " memory";
+  // if the first 4 characters of the type are "enum", remove the "enum " from the type
+  else if (type.slice(0, 4) == "enum") type = type.slice(5);
+  // if the first 6 characters of the type are "struct", remove the "struct " from the type and add memory
+  else if (type.slice(0, 6) == "struct") type = type.slice(7) + " memory";
+
+  return { definition: `${type} ${name}`, name };
+}
+
+// Note: Ensures contract artifacts are up-to-date.
+function prepareArtifacts() {
+  console.log(`Preparing artifacts...`);
+
+  execSync("forge clean");
+  execSync("forge build");
+
+  console.log(`Artifacts ready. Continuing.`);
+}
+
+function format() {
+  execSync("forge fmt");
+}
+
 replaceInFile(
   filePath,
   formattedPath,
   replacementExample,
-  replacementArgsConstruct,
-  replacementArgs,
   replacementPathToExample,
+  // TODO flag --contractName for the contract name
+  undefined,
 );
-
-// TODO: Format the new file
-
-function generateStructDefinition(name, constructArg, initArg) {
-  // Split the input strings by commas to handle multiple fields
-  const constructArgs = constructArg ? constructArg.split(", ") : [];
-  const initArgs = initArg ? initArg.split(", ") : [];
-
-  // Function to remove the location from a type
-  function removeLocation(type) {
-    return type.replace(/(memory|storage) /, "");
-  }
-
-  // Create the struct definition if there are arguments
-  if (constructArgs.length > 0 || initArgs.length > 0) {
-    let structDefinition = `struct ${name}Input {\n`;
-
-    // Add the constructor arguments without locations
-    if (constructArgs.length > 0) {
-      structDefinition += `    ${constructArgs
-        .map(removeLocation)
-        .join(";\n    ")};\n`;
-    }
-
-    // Add the initialization arguments without locations
-    if (initArgs.length > 0) {
-      structDefinition += `    ${initArgs
-        .map(removeLocation)
-        .join(";\n    ")};\n`;
-    }
-
-    // Close the struct definition
-    structDefinition += "}\n";
-
-    return structDefinition;
-  } else {
-    // Return an empty string if no arguments are provided
-    return "";
-  }
-}
-
-function changeInputStrings(arg1, arg2) {
-  // Helper function to extract names from a comma-separated string
-  function extractNames(input) {
-    const parts = input.split(", ");
-    return parts.map((part) => {
-      const match = part.match(/\w+$/);
-      return match ? match[0] : "";
-    });
-  }
-
-  // Extract names from the input arguments
-  const names1 = extractNames(arg1);
-  const names2 = extractNames(arg2);
-
-  // Find duplicate names
-  const duplicates = names1.filter((name) => names2.includes(name));
-
-  // Replace duplicate names in the original strings
-  if (duplicates.length > 0) {
-    duplicates.forEach((name) => {
-      arg1 = arg1.replace(
-        new RegExp(`\\b${name}\\b`, "g"),
-        `${name}_constructor`,
-      );
-      arg2 = arg2.replace(
-        new RegExp(`\\b${name}\\b`, "g"),
-        `${name}_initialize`,
-      );
-    });
-  }
-
-  return [arg1, arg2];
-}
