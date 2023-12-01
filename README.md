@@ -6,5 +6,5 @@ forge install 0xPolygon/contract-deployer-template
 ```
 
 ```
-node lib/contract-deployer-template/run.js <contractFile> <outputDir>
+node lib/contract-deployer-template <contractFile> <outputDir>
 ```
