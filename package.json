@@ -1,0 +1,7 @@
+{
+  "name": "contract-deployer-template",
+  "version": "0.1.0",
+  "main": "index.js",
+  "author": "Polygon Labs",
+  "license": "MIT"
+}
