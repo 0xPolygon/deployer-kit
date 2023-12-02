@@ -57,8 +57,7 @@ const replaceInFile = (
   replacementPathToExample,
   contractName,
 ) => {
-  // compile contracts if they don't exist
-  if (!fs.existsSync("out")) prepareArtifacts();
+  execSync("forge build --skip s.sol --skip t.sol");
 
   // get abi
   contractName =
@@ -75,23 +74,32 @@ const replaceInFile = (
     fileContents = fs.readFileSync(contractFileName, "utf8");
   } catch {
     console.error(
-      "Contract not found. Did you provide the correct contract name and run `forge build`?",
+      "Contract not found. Did you provide the correct contract name?",
     );
     process.exit(1);
   }
   abi = JSON.parse(fileContents).abi;
+
   // get constructor and initializer args, format them, if none present, set to empty array, if initArgs is undefined, it means no initializer function is present
-  const constructorArgs =
-    abi
-      .find((element) => element.type == "constructor")
-      ?.inputs.map((element) =>
-        formatInput(element.internalType, element.name),
-      ) ?? [];
-  const initArgs = abi
-    .find(
-      (element) => element.type == "function" && element.name == "initialize",
-    )
-    ?.inputs.map((element) => formatInput(element.internalType, element.name));
+  let constructorArgs = abi.find((element) => element.type == "constructor");
+  let initArgs = abi.find(
+    (element) => element.type == "function" && element.name == "initialize",
+  );
+
+  if (initArgs !== undefined && constructorArgs !== undefined) {
+    constructorArgs.inputs = constructorArgs.inputs.map((e) => {
+      const duplicate = initArgs.inputs.find((i) => i.name == e.name);
+      return duplicate !== undefined ? { ...e, name: "c_" + e.name } : e;
+    });
+  }
+
+  constructorArgs =
+    constructorArgs?.inputs.map((element) =>
+      formatInput(element.internalType, element.name),
+    ) ?? [];
+  initArgs = initArgs?.inputs.map((element) =>
+    formatInput(element.internalType, element.name),
+  );
 
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
@@ -152,8 +160,8 @@ const replaceInFile = (
       if (err) {
         console.error(err);
       } else {
-        format();
-        console.log("Deployer generated.");
+        execSync("forge fmt");
+        console.log(`${contractName} deployer generated.`);
       }
     });
   });
@@ -179,20 +187,6 @@ function formatInput(type, name) {
   else if (type.slice(0, 6) == "struct") type = type.slice(7) + " memory";
 
   return { definition: `${type} ${name}`, name };
-}
-
-// Note: Ensures contract artifacts are up-to-date.
-function prepareArtifacts() {
-  console.log(`Preparing artifacts...`);
-
-  execSync("forge clean");
-  execSync("forge build");
-
-  console.log(`Artifacts ready. Continuing.`);
-}
-
-function format() {
-  execSync("forge fmt");
 }
 
 replaceInFile(
