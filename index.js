@@ -2,53 +2,114 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-// Replace occurrences in the specified file with the provided arguments
-const filePath = "lib/contract-deployer-template/template";
-const replacementPathToExample = process.argv[2];
-// todo add default output dir
-const newFilePath = process.argv[3];
-let replacementExample;
+function main() {
+  // Replace occurrences in the specified file with the provided arguments
+  const filePath = "lib/contract-deployer-template/template";
+  const args = process.argv.slice(2);
 
-if (!replacementPathToExample || !newFilePath) {
-  console.error(
-    "Usage: node lib/contract-deployer-template/run.js <contractFile> <constructParams> <initParams> <outputDir>",
+  let replacementPathToExample;
+  let newFilePath;
+  let contractName;
+
+  for (let i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case "-h":
+      case "--help":
+        printHelp();
+        process.exit(0);
+      case "-v":
+      case "--version":
+        console.log(
+          JSON.parse(fs.readFileSync("./package.json", "utf8")).version,
+        );
+        process.exit(0);
+      case "-c":
+      case "--contract":
+        // Check if there's another argument after --output and the argument is not another command
+        if (i + 1 < args.length && args[i + 1].charAt(0) !== "-") {
+          replacementPathToExample = args[i + 1];
+          i++; // Skip the next argument
+          break;
+        } else {
+          console.error(
+            "Error: --contract flag requires the path to a contract",
+          );
+          process.exit(1);
+        }
+      case "-o":
+      case "--output":
+        // Check if there's another argument after --output and the argument is not another command
+        if (i + 1 < args.length && args[i + 1].charAt(0) !== "-") {
+          newFilePath = args[i + 1];
+          i++; // Skip the next argument
+          break;
+        } else {
+          console.error(
+            "Error: --output flag requires the path to a directory",
+          );
+          process.exit(1);
+        }
+      case "-n":
+      case "--name":
+        // Check if there's another argument after --output and the argument is not another command
+        if (i + 1 < args.length && args[i + 1].charAt(0) !== "-") {
+          contractName = args[i + 1];
+          i++; // Skip the next argument
+          break;
+        } else {
+          console.error("Error: --name flag requires the name of the contract");
+          process.exit(1);
+        }
+      default:
+        printHelp();
+        process.exit(1);
+    }
+  }
+
+  if (replacementPathToExample === undefined) {
+    printHelp();
+    process.exit(1);
+  }
+
+  // Extract the file name from the path by splitting the string based on the '/' delimiter
+  const parts = replacementPathToExample.split("/");
+  // Get the last part of the path, which is the file name with the extension
+  const fileNameWithExtension = parts[parts.length - 1];
+  // Split the file name by the dot('.') to get the name and the extension separately
+  const fileNameParts = fileNameWithExtension.split(".");
+  // Check if there is more than one element in the fileNameParts array
+  let replacementExample;
+  if (fileNameParts.length > 1) {
+    // Join the parts of the file name excluding the last element (the extension)
+    replacementExample = fileNameParts.slice(0, -1).join(".");
+  } else {
+    // The file name as it is if no extension is found
+    replacementExample = fileNameParts[0];
+  }
+
+  // if contract name was not provided, use contract file name instead
+  contractName = contractName ?? replacementExample;
+
+  let filePathPrefix = newFilePath ?? "script/deployers";
+
+  // create the directory if it doesn't exist
+  if (!fs.existsSync(filePathPrefix)) {
+    fs.mkdirSync(filePathPrefix, { recursive: true });
+  }
+
+  const formattedPath = path.join(
+    filePathPrefix,
+    contractName + "Deployer.s.sol",
   );
-  process.exit(1);
-}
 
-// Extract the file name from the path by splitting the string based on the '/' delimiter
-const parts = replacementPathToExample.split("/");
-// Get the last part of the path, which is the file name with the extension
-const fileNameWithExtension = parts[parts.length - 1];
-// Split the file name by the dot('.') to get the name and the extension separately
-const fileNameParts = fileNameWithExtension.split(".");
-// Check if there is more than one element in the fileNameParts array
-if (fileNameParts.length > 1) {
-  // Join the parts of the file name excluding the last element (the extension)
-  replacementExample = fileNameParts.slice(0, -1).join(".");
-} else {
-  // The file name as it is if no extension is found
-  replacementExample = fileNameParts[0];
-}
-
-if (!replacementPathToExample) {
-  console.error(
-    "Usage: node script/util/generateDeployer.js <contractFile> <constructParams> <initParams> <outputDir>",
+  replaceInFile(
+    filePath,
+    formattedPath,
+    replacementExample,
+    replacementPathToExample,
+    contractName,
   );
-  process.exit(1);
 }
-
-let filePathPrefix = newFilePath;
-
-// create the directory if it doesn't exist
-if (!fs.existsSync(filePathPrefix)) {
-  fs.mkdirSync(filePathPrefix, { recursive: true });
-}
-
-const formattedPath = path.join(
-  filePathPrefix,
-  "Deploy" + replacementExample + ".s.sol",
-);
 
 const replaceInFile = (
   filePath,
@@ -60,14 +121,10 @@ const replaceInFile = (
   execSync("forge build --skip s.sol --skip t.sol");
 
   // get abi
-  contractName =
-    contractName != undefined
-      ? contractName + ".json"
-      : replacementExample + ".json";
   const contractFileName = path.join(
     "out",
     replacementExample + ".sol",
-    contractName,
+    contractName + ".json",
   );
   let fileContents;
   try {
@@ -116,7 +173,7 @@ const replaceInFile = (
     let regexInitData = new RegExp("<initData>", "g");
 
     let initData = "abi.encodeCall(<Example>.initialize, (<initArg>))";
-    let updatedData = initData.replace(regexExample, replacementExample);
+    let updatedData = initData.replace(regexExample, contractName);
     if (initArgs === undefined) {
       updatedData = `"";\n        revert("${replacementExample} is not initializable")`;
     } else {
@@ -130,7 +187,7 @@ const replaceInFile = (
     replacementExample = replacementExample.replace(/[^a-zA-Z0-9]/g, "");
 
     updatedData = data.replace(regexInitData, updatedData);
-    updatedData = updatedData.replace(regexExample, replacementExample);
+    updatedData = updatedData.replace(regexExample, contractName);
     updatedData = updatedData.replace(
       regexExampleVar,
       replacementExample.charAt(0).toLowerCase() + replacementExample.slice(1),
@@ -161,13 +218,13 @@ const replaceInFile = (
         console.error(err);
       } else {
         execSync("forge fmt");
-        console.log(`${contractName} deployer generated.`);
+        console.log(`generated ${newFilePath}`);
       }
     });
   });
 };
 
-function formatInput(type, name) {
+const formatInput = (type, name) => {
   // order of operations is important, as some types are caught by multiple cases
   // if the first 6 characters of the type are "string", add memory to the type
   if (type.slice(0, 6) == "string") type += " memory";
@@ -187,13 +244,12 @@ function formatInput(type, name) {
   else if (type.slice(0, 6) == "struct") type = type.slice(7) + " memory";
 
   return { definition: `${type} ${name}`, name };
-}
+};
 
-replaceInFile(
-  filePath,
-  formattedPath,
-  replacementExample,
-  replacementPathToExample,
-  // TODO flag --contractName for the contract name
-  undefined,
-);
+const printHelp = () => {
+  console.log(
+    "\nUsage: node lib/contract-deployer-template <COMMANDS>\n\nCommands:\n  -c, --contract\t(Required) Path to the contract to generate the deployer for\n  -o, --output\t\t(Optional) Output directory where the deployer contract is generated. (default: script/deployers)\n  -n, --name\t\t(Optional) Name of the contract in case it differs from the file name (default: name of the contract file)\n\nOptions:\n  -h, --help\t\tPrint help\n  -v, --version\t\tPrint version\n",
+  );
+};
+
+main();
