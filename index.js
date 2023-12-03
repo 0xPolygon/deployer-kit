@@ -48,7 +48,7 @@ function main() {
         }
       case "-n":
       case "--name":
-        // Check if there's another argument after --output and the argument is not another command
+        // Check if there's another argument after --name and the argument is not another command
         if (i + 1 < args.length && args[i + 1].charAt(0) !== "-") {
           contractName = args[i + 1];
           i++; // Skip the next argument
