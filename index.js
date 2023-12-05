@@ -5,37 +5,34 @@ const { execSync } = require("child_process");
 function main() {
   // Replace occurrences in the specified file with the provided arguments
   const filePath = "lib/contract-deployer-template/template";
-  const args = process.argv.slice(2);
+  const args = process.argv.slice(3);
 
-  let replacementPathToExample;
+  let replacementPathToExample = process.argv[2];
+
+  if (
+    replacementPathToExample === undefined ||
+    replacementPathToExample === "-h" ||
+    replacementPathToExample === "--help"
+  ) {
+    printHelp();
+    process.exit(0);
+  } else if (
+    replacementPathToExample === "-v" ||
+    replacementPathToExample === "--version"
+  ) {
+    console.log(
+      JSON.parse(
+        fs.readFileSync("lib/contract-deployer-template/package.json", "utf8"),
+      ).version,
+    );
+    process.exit(0);
+  }
+
   let newFilePath;
   let contractName;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
-      case "-h":
-      case "--help":
-        printHelp();
-        process.exit(0);
-      case "-v":
-      case "--version":
-        console.log(
-          JSON.parse(fs.readFileSync("./package.json", "utf8")).version,
-        );
-        process.exit(0);
-      case "-c":
-      case "--contract":
-        // Check if there's another argument after --output and the argument is not another command
-        if (i + 1 < args.length && args[i + 1].charAt(0) !== "-") {
-          replacementPathToExample = args[i + 1];
-          i++; // Skip the next argument
-          break;
-        } else {
-          console.error(
-            "Error: --contract flag requires the path to a contract",
-          );
-          process.exit(1);
-        }
       case "-o":
       case "--output":
         // Check if there's another argument after --output and the argument is not another command
@@ -51,7 +48,7 @@ function main() {
         }
       case "-n":
       case "--name":
-        // Check if there's another argument after --output and the argument is not another command
+        // Check if there's another argument after --name and the argument is not another command
         if (i + 1 < args.length && args[i + 1].charAt(0) !== "-") {
           contractName = args[i + 1];
           i++; // Skip the next argument
@@ -64,11 +61,6 @@ function main() {
         printHelp();
         process.exit(1);
     }
-  }
-
-  if (replacementPathToExample === undefined) {
-    printHelp();
-    process.exit(1);
   }
 
   // Extract the file name from the path by splitting the string based on the '/' delimiter
@@ -248,7 +240,7 @@ const formatInput = (type, name) => {
 
 const printHelp = () => {
   console.log(
-    "\nUsage: node lib/contract-deployer-template <COMMANDS>\n\nCommands:\n  -c, --contract\t(Required) Path to the contract to generate the deployer for\n  -o, --output\t\t(Optional) Output directory where the deployer contract is generated. (default: script/deployers)\n  -n, --name\t\t(Optional) Name of the contract in case it differs from the file name (default: name of the contract file)\n\nOptions:\n  -h, --help\t\tPrint help\n  -v, --version\t\tPrint version\n",
+    "\nUsage: node lib/contract-deployer-template <pathToContract> [-o output] [-n name]\n\nCommands:\n  -o, --output\t\tOutput directory (default: script/deployers)\n  -n, --name\t\tName of the contract in case it differs from the file name (default: name of the contract file)\n\nOptions:\n  -h, --help\t\tPrint help\n  -v, --version\t\tPrint version\n\nDocumentation can be found at https://github.com/0xPolygon/contract-deployer-template",
   );
 };
 

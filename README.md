@@ -17,21 +17,18 @@ forge install 0xPolygon/contract-deployer-template
 The following command will create a deployer contract for the `MyExample` contract from the `src/Example.sol` file in the `test/deployers/MyExampleDeployer.s.sol` file.
 
 ```bash
-node lib/contract-deployer-template -c src/Example.sol -o test/deployers -n MyExample
+node lib/contract-deployer-template src/Example.sol -o test/deployers -n MyExample
 ```
 
 ## Flags
 
-| --flag     | -flag | Description                                               |
-| ---------- | ----- | --------------------------------------------------------- |
-| Required   |       |                                                           |
-| --contract | -c    | Path to the contract to generate the deployer for         |
-| Optional   |       |                                                           |
-| --output   | -o    | Output directory (default: script/deployers)              |
-| --name     | -n    | Name of the contract (default: name of the contract file) |
-| Options    |       |                                                           |
-| --help     | -h    | Print help                                                |
-| --version  | -v    | Print the version number                                  |
+| --flag    | -flag | Description                                               |
+| --------- | ----- | --------------------------------------------------------- |
+| --output  | -o    | Output directory (default: script/deployers)              |
+| --name    | -n    | Name of the contract (default: name of the contract file) |
+| Options   |       |                                                           |
+| --help    | -h    | Print help                                                |
+| --version | -v    | Print the version number                                  |
 
 ---
 
