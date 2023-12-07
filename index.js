@@ -16,15 +16,8 @@ function main() {
   ) {
     printHelp();
     process.exit(0);
-  } else if (
-    replacementPathToExample === "-v" ||
-    replacementPathToExample === "--version"
-  ) {
-    console.log(
-      JSON.parse(
-        fs.readFileSync("lib/contract-deployer-template/package.json", "utf8"),
-      ).version,
-    );
+  } else if (replacementPathToExample === "-v" || replacementPathToExample === "--version") {
+    console.log(JSON.parse(fs.readFileSync("lib/contract-deployer-template/package.json", "utf8")).version);
     process.exit(0);
   }
 
@@ -41,9 +34,7 @@ function main() {
           i++; // Skip the next argument
           break;
         } else {
-          console.error(
-            "Error: --output flag requires the path to a directory",
-          );
+          console.error("Error: --output flag requires the path to a directory");
           process.exit(1);
         }
       case "-n":
@@ -89,51 +80,28 @@ function main() {
     fs.mkdirSync(filePathPrefix, { recursive: true });
   }
 
-  const formattedPath = path.join(
-    filePathPrefix,
-    contractName + "Deployer.s.sol",
-  );
+  const formattedPath = path.join(filePathPrefix, contractName + "Deployer.s.sol");
 
-  replaceInFile(
-    filePath,
-    formattedPath,
-    replacementExample,
-    replacementPathToExample,
-    contractName,
-  );
+  replaceInFile(filePath, formattedPath, replacementExample, replacementPathToExample, contractName);
 }
 
-const replaceInFile = (
-  filePath,
-  newFilePath,
-  replacementExample,
-  replacementPathToExample,
-  contractName,
-) => {
+const replaceInFile = (filePath, newFilePath, replacementExample, replacementPathToExample, contractName) => {
   execSync("forge build --skip s.sol --skip t.sol");
 
   // get abi
-  const contractFileName = path.join(
-    "out",
-    replacementExample + ".sol",
-    contractName + ".json",
-  );
+  const contractFileName = path.join("out", replacementExample + ".sol", contractName + ".json");
   let fileContents;
   try {
     fileContents = fs.readFileSync(contractFileName, "utf8");
   } catch {
-    console.error(
-      "Contract not found. Did you provide the correct contract name?",
-    );
+    console.error("Contract not found. Did you provide the correct contract name?");
     process.exit(1);
   }
   abi = JSON.parse(fileContents).abi;
 
   // get constructor and initializer args, format them, if none present, set to empty array, if initArgs is undefined, it means no initializer function is present
   let constructorArgs = abi.find((element) => element.type == "constructor");
-  let initArgs = abi.find(
-    (element) => element.type == "function" && element.name == "initialize",
-  );
+  let initArgs = abi.find((element) => element.type == "function" && element.name == "initialize");
 
   if (initArgs !== undefined && constructorArgs !== undefined) {
     constructorArgs.inputs = constructorArgs.inputs.map((e) => {
@@ -142,13 +110,8 @@ const replaceInFile = (
     });
   }
 
-  constructorArgs =
-    constructorArgs?.inputs.map((element) =>
-      formatInput(element.internalType, element.name),
-    ) ?? [];
-  initArgs = initArgs?.inputs.map((element) =>
-    formatInput(element.internalType, element.name),
-  );
+  constructorArgs = constructorArgs?.inputs.map((element) => formatInput(element.internalType, element.name)) ?? [];
+  initArgs = initArgs?.inputs.map((element) => formatInput(element.internalType, element.name));
 
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
@@ -186,24 +149,14 @@ const replaceInFile = (
     );
     updatedData = updatedData.replace(
       regexArgsConstruct,
-      constructorArgs.length === 0
-        ? ""
-        : ", " + constructorArgs.map((e) => e.definition).join(", "),
+      constructorArgs.length === 0 ? "" : ", " + constructorArgs.map((e) => e.definition).join(", "),
     );
-    updatedData = updatedData.replace(
-      regexArgsConstructNames,
-      constructorArgs.map((e) => e.name).join(", "),
-    );
+    updatedData = updatedData.replace(regexArgsConstructNames, constructorArgs.map((e) => e.name).join(", "));
     updatedData = updatedData.replace(
       regexArgs,
-      initArgs === undefined || initArgs.length === 0
-        ? ""
-        : ", " + initArgs.map((e) => e.definition).join(", "),
+      initArgs === undefined || initArgs.length === 0 ? "" : ", " + initArgs.map((e) => e.definition).join(", "),
     );
-    updatedData = updatedData.replace(
-      regexPathToExample,
-      replacementPathToExample,
-    );
+    updatedData = updatedData.replace(regexPathToExample, replacementPathToExample);
 
     fs.writeFile(newFilePath, updatedData, "utf8", (err) => {
       if (err) {
