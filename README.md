@@ -1,6 +1,6 @@
-# Contract Deployer Template
+# Deployer Kit
 
-The deployer template script is a tool to streamline the deployment of contracts between scripts and unit tests. Sharing a single script during testing and production deployment reduces the risk of errors and allows to test the deployment process in advance.
+The deployer kit script is a tool to streamline the deployment of contracts between scripts and unit tests. Sharing a single script during testing and production deployment reduces the risk of errors and allows to test the deployment process in advance.
 
 ## Requirements
 
@@ -9,7 +9,7 @@ The script utilizes Node.js to run. We recommend the node version defined in the
 ## Installation
 
 ```bash
-forge install 0xPolygon/contract-deployer-template
+forge install 0xPolygon/deployer-kit
 ```
 
 ## Usage Example
@@ -17,7 +17,7 @@ forge install 0xPolygon/contract-deployer-template
 The following command will create a deployer contract for the `MyExample` contract from the `src/Example.sol` file in the `test/deployers/MyExampleDeployer.s.sol` file.
 
 ```bash
-node lib/contract-deployer-template src/Example.sol -o test/deployers -n MyExample
+node lib/deployer-kit src/Example.sol -o test/deployers -n MyExample
 ```
 
 ## Flags
