@@ -4,7 +4,7 @@ const { execSync } = require("child_process");
 
 function main() {
   // Replace occurrences in the specified file with the provided arguments
-  const filePath = "lib/contract-deployer-template/template";
+  const filePath = "lib/deployer-kit/template";
   const args = process.argv.slice(3);
 
   let replacementPathToExample = process.argv[2];
@@ -17,7 +17,7 @@ function main() {
     printHelp();
     process.exit(0);
   } else if (replacementPathToExample === "-v" || replacementPathToExample === "--version") {
-    console.log(JSON.parse(fs.readFileSync("lib/contract-deployer-template/package.json", "utf8")).version);
+    console.log(JSON.parse(fs.readFileSync("lib/deployer-kit/package.json", "utf8")).version);
     process.exit(0);
   }
 
@@ -193,7 +193,7 @@ const formatInput = (type, name) => {
 
 const printHelp = () => {
   console.log(
-    "\nUsage: node lib/contract-deployer-template <pathToContract> [-o output] [-n name]\n\nCommands:\n  -o, --output\t\tOutput directory (default: script/deployers)\n  -n, --name\t\tName of the contract in case it differs from the file name (default: name of the contract file)\n\nOptions:\n  -h, --help\t\tPrint help\n  -v, --version\t\tPrint version\n\nDocumentation can be found at https://github.com/0xPolygon/contract-deployer-template",
+    "\nUsage: node lib/deployer-kit <pathToContract> [-o output] [-n name]\n\nCommands:\n  -o, --output\t\tOutput directory (default: script/deployers)\n  -n, --name\t\tName of the contract in case it differs from the file name (default: name of the contract file)\n\nOptions:\n  -h, --help\t\tPrint help\n  -v, --version\t\tPrint version\n\nDocumentation can be found at https://github.com/0xPolygon/deployer-kit",
   );
 };
 

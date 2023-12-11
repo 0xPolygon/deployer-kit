@@ -1,5 +1,5 @@
 {
-    "name": "contract-deployer-template",
+    "name": "deployer-kit",
     "version": "0.1.0",
     "description": "The deployer template script is a tool to streamline the deployment of contracts between scripts and unit tests",
     "main": "index.js",
